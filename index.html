@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>好姿食堂收銀系統</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #F1DD95; /* 奶油黃 */
+    }
+    header {
+      background: #888;
+      color: white;
+      text-align: center;
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .container { padding: 15px; }
+
+    /* 切換按鈕 */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: #fffaf0; /* 奶油白 */
+    }
+    .tabs button {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .active { background: #f7d86d; font-weight: bold; }
+
+    /* 點餐按鈕 */
+    .menu {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    button {
+      background: #ccc;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover { background: #aaa; }
+
+    /* 卡片 */
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 8px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    h2 { margin-top: 20px; font-size: 18px; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+    .hidden { display: none; }
+
+    /* 後台白色表格 */
+    .white-table {
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+    }
+    .white-table th {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <header>好姿食堂收銀系統</header>
+
+  <!-- 切換按鈕 -->
+  <div class="tabs">
+    <button id="frontTab" class="active" onclick="showPage('front')">前台系統</button>
+    <button id="backTab" onclick="showPage('back')">後台系統</button>
+  </div>
+
+  <div class="container">
+
+    <!-- 前台 -->
+    <div id="frontPage">
+      <h2>收銀系統</h2>
+      <div class="menu">
+        <button onclick="addItem('原味蛋餅',30)">原味蛋餅 $30</button>
+        <button onclick="addItem('火腿蛋餅',45)">火腿蛋餅 $45</button>
+        <button onclick="addItem('起司蛋餅',40)">起司蛋餅 $40</button>
+        <button onclick="addItem('玉米蛋餅',40)">玉米蛋餅 $40</button>
+        <button onclick="addItem('總匯蛋餅',60)">總匯蛋餅 $60</button>
+        <button onclick="addItem('蛋餅皮',20)">蛋餅皮 $20</button>
+        <button onclick="addItem('蔥油餅',45)">蔥油餅 $45</button>
+        <button onclick="addItem('大腸麵線(大)',55)">大腸麵線(大) $55</button>
+        <button onclick="addItem('大腸麵線(小)',45)">大腸麵線(小) $45</button>
+        <button onclick="addItem('清麵線(大)',45)">清麵線(大) $45</button>
+        <button onclick="addItem('清麵線(小)',35)">清麵線(小) $35</button>
+        <button onclick="addItem('紅茶',20)">紅茶 $20</button>
+      </div>
+
+      <h3>當前訂單</h3>
+      <div id="orderList"></div>
+      <div><b>總金額: $<span id="totalAmount">0</span></b></div>
+      <div class="flex">
+        <button onclick="removeLastItem()">刪除最後餐點</button>
+        <button onclick="saveOrder()">送出訂單</button>
+      </div>
+
+      <h3>今日銷售訂單</h3>
+      <div id="todayOrders"></div>
+    </div>
+
+    <!-- 後台 -->
+    <div id="backPage" class="hidden">
+      <h2>後台報表</h2>
+
+      <h3>今日品項統計</h3>
+      <table class="white-table">
+        <thead><tr><th>品項</th><th>數量</th><th>銷售額</th></tr></thead>
+        <tbody id="itemStats"></tbody>
+      </table>
+
+      <h3>營業額統計</h3>
+      <table class="white-table">
+        <thead><tr><th>類別</th><th>金額</th></tr></thead>
+        <tbody>
+          <tr><td>今日營業額</td><td>$<span id="todayRevenue">0</span></td></tr>
+          <tr><td>本週營業額</td><td>$<span id="weekRevenue">0</span></td></tr>
+          <tr><td>本月營業額</td><td>$<span id="monthRevenue">0</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>歷史訂單查詢</h3>
+      <input type="date" id="historyDate" onchange="renderHistoryByDate()">
+      <div id="historyOrders"></div>
+
+      <div class="flex">
+        <button onclick="exportCSV()">匯出CSV</button>
+        <button onclick="clearAllData()">清除所有紀錄</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentOrder = {};
+    let allData = JSON.parse(localStorage.getItem("allData")) || { orders: [], history: [] };
+    let orderNumber = allData.orders.length + 1;
+
+    function saveData(){ localStorage.setItem("allData", JSON.stringify(allData)); }
+
+    function checkNewDay(){
+      let today = new Date().toISOString().split("T")[0];
+      let lastDay = localStorage.getItem("lastDay");
+      if(lastDay !== today){
+        if(allData.orders.length>0){
+          allData.history.push({ date:lastDay, orders:allData.orders });
+        }
+        allData.orders = [];
+        localStorage.setItem("lastDay", today);
+        saveData();
+      }
+    }
+
+    function addItem(name, price){
+      if(currentOrder[name]) currentOrder[name].qty++;
+      else currentOrder[name] = { price, qty:1 };
+      renderOrder();
+    }
+    function removeLastItem(){
+      let keys = Object.keys(currentOrder);
+      if(keys.length>0){ delete currentOrder[keys[keys.length-1]]; renderOrder(); }
+    }
+    function saveOrder(){
+      if(Object.keys(currentOrder).length===0){ alert("請先新增餐點！"); return; }
+      let total=0, items=[];
+      for(let k in currentOrder){
+        let {price, qty}=currentOrder[k]; total+=price*qty;
+        items.push({ name:k, qty, price, subtotal:price*qty });
+      }
+      let order={ orderNumber:orderNumber++, items,total,time:new Date().toLocaleString() };
+      allData.orders.push(order); currentOrder={}; saveData(); renderAll();
+    }
+    function clearAllData(){
+      if(confirm("⚠️ 確定要清除所有資料嗎？此動作不可回復！")){
+        allData={ orders:[], history:[] }; orderNumber=1; saveData(); renderAll();
+      }
+    }
+    function exportCSV(){
+      let rows=[["日期","訂單編號","品項","數量","單價","小計","總金額"]];
+      [...allData.history,{date:"今日",orders:allData.orders}].forEach(d=>{
+        if(!d.date) return;
+        d.orders.forEach(o=>{
+          o.items.forEach(i=>{
+            rows.push([d.date,o.orderNumber,i.name,i.qty,i.price,i.subtotal,o.total]);
+          });
+        });
+      });
+      let csv=rows.map(r=>r.join(",")).join("\n");
+      let blob=new Blob([csv],{type:"text/csv"});
+      let link=document.createElement("a");
+      link.href=URL.createObjectURL(blob); link.download="orders.csv"; link.click();
+    }
+
+    function renderOrder(){
+      let box=document.getElementById("orderList"); box.innerHTML="";
+      let total=0;
+      for(let k in currentOrder){
+        let {price,qty}=currentOrder[k], subtotal=price*qty; total+=subtotal;
+        let div=document.createElement("div"); div.className="card";
+        div.innerHTML=`${k} x${qty} - $${subtotal}`; box.appendChild(div);
+      }
+      document.getElementById("totalAmount").innerText=total;
+    }
+    function renderTodayOrders(){
+      let box=document.getElementById("todayOrders"); box.innerHTML="";
+      allData.orders.forEach(o=>{
+        let div=document.createElement("div"); div.className="card";
+        div.innerHTML=`<b>訂單 #${o.orderNumber}</b> (${o.time})<br>
+          ${o.items.map(i=>`${i.name} x${i.qty}`).join(", ")}<br>總金額: $${o.total}`;
+        box.appendChild(div);
+      });
+    }
+    function renderItemStats(){
+      let stats={};
+      allData.orders.forEach(o=>{ o.items.forEach(i=>{
+        if(!stats[i.name]) stats[i.name]={qty:0,total:0};
+        stats[i.name].qty+=i.qty; stats[i.name].total+=i.subtotal;
+      })});
+      let tbody=document.getElementById("itemStats"); tbody.innerHTML="";
+      for(let k in stats){
+        let tr=document.createElement("tr");
+        tr.innerHTML=`<td>${k}</td><td>${stats[k].qty}</td><td>$${stats[k].total}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+    function renderRevenue(){
+      let today=0,week=0,month=0,now=new Date();
+      let weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay());
+      let monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+      allData.orders.forEach(o=>today+=o.total);
+      allData.history.forEach(d=>{ d.orders.forEach(o=>{
+        let t=new Date(o.time);
+        if(t>=weekStart) week+=o.total; if(t>=monthStart) month+=o.total;
+      })});
+      week+=today; month+=today;
+      document.getElementById("todayRevenue").innerText=today;
+      document.getElementById("weekRevenue").innerText=week;
+      document.getElementById("monthRevenue").innerText=month;
+    }
+    function renderHistoryByDate(){
+      let date=document.getElementById("historyDate").value;
+      let box=document.getElementById("historyOrders"); box.innerHTML="";
+      let d=allData.history.find(h=>h.date===date);
+      if(d){
+        d.orders.forEach(o=>{
+          let div=document.createElement("div"); div.className="card";
+          div.innerHTML=`訂單 #${o.orderNumber} (${o.time})<br>
+            ${o.items.map(i=>`${i.name} x${i.qty}`).join(", ")}<br>總金額: $${o.total}`;
+          box.appendChild(div);
+        });
+      } else {
+        box.innerHTML="<i>此日期無訂單紀錄</i>";
+      }
+    }
+
+    function renderAll(){ renderOrder(); renderTodayOrders(); renderItemStats(); renderRevenue(); }
+    function showPage(p){
+      document.getElementById("frontPage").classList.add("hidden");
+      document.getElementById("backPage").classList.add("hidden");
+      document.getElementById("frontTab").classList.remove("active");
+      document.getElementById("backTab").classList.remove("active");
+      if(p==="front"){ document.getElementById("frontPage").classList.remove("hidden"); document.getElementById("frontTab").classList.add("active"); }
+      else { document.getElementById("backPage").classList.remove("hidden"); document.getElementById("backTab").classList.add("active"); }
+    }
+
+    checkNewDay(); renderAll();
+  </script>
+</body>
+</html>
